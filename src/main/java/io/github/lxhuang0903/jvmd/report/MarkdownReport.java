@@ -1,0 +1,103 @@
+package io.github.lxhuang0903.jvmd.report;
+
+import io.github.lxhuang0903.jvmd.analyze.AnalysisResult;
+import io.github.lxhuang0903.jvmd.analyze.Contention;
+import io.github.lxhuang0903.jvmd.analyze.Finding;
+import io.github.lxhuang0903.jvmd.analyze.Hotspot;
+import io.github.lxhuang0903.jvmd.model.Snapshot;
+import io.github.lxhuang0903.jvmd.model.ThreadDump;
+import io.github.lxhuang0903.jvmd.util.BuildInfo;
+import io.github.lxhuang0903.jvmd.util.Format;
+
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+import java.util.Map;
+
+/** Plain Markdown, for PR comments, incident tickets and AI chat windows. */
+public final class MarkdownReport {
+
+    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z");
+
+    private MarkdownReport() {
+    }
+
+    public static String render(Snapshot snapshot, AnalysisResult result) {
+        StringBuilder b = new StringBuilder(12_000);
+        b.append("# JVM Detective report — ").append(result.verdict()).append("\n\n");
+        b.append("> ").append(result.narrative()).append("\n\n");
+
+        b.append("| | |\n|---|---|\n");
+        b.append("| Target | `").append(snapshot.vm().displayName()).append("` (pid ").append(snapshot.vm().pid()).append(") |\n");
+        b.append("| Java | ").append(snapshot.vm().javaVersion()).append(" |\n");
+        b.append("| GC | ").append(snapshot.vm().gcName()).append(" |\n");
+        b.append("| Uptime | ").append(snapshot.vm().uptimeDisplay()).append(" |\n");
+        b.append("| Captured | ").append(TIME.format(snapshot.capturedAt().atZone(ZoneId.systemDefault()))).append(" |\n");
+        b.append("| Samples | ").append(snapshot.sampleCount()).append(" |\n");
+        b.append("| Threads | ").append(result.stats().totalThreads()).append(" (")
+                .append(result.stats().runnable()).append(" runnable, ")
+                .append(result.stats().blocked()).append(" blocked, ")
+                .append(result.stats().deadlocked()).append(" deadlocked) |\n");
+        b.append("| Heap | ").append(Format.mb(result.stats().heapUsed())).append(" / ")
+                .append(Format.mb(result.stats().heapMax())).append(" (").append(Format.pct(result.stats().heapRatio()))
+                .append(") |\n\n");
+
+        b.append("## Findings\n\n");
+        int index = 1;
+        for (Finding f : result.findings()) {
+            b.append("### ").append(index++).append(". [").append(f.severity().label().toUpperCase(Locale.ROOT))
+                    .append("] ").append(f.title()).append("\n\n");
+            b.append(f.summary()).append("\n\n");
+            if (!f.evidence().isEmpty()) {
+                b.append("**Evidence**\n\n```\n");
+                f.evidence().forEach(e -> b.append(e).append('\n'));
+                b.append("```\n\n");
+            }
+            if (!f.impact().isBlank()) {
+                b.append("**Why it matters:** ").append(f.impact()).append("\n\n");
+            }
+            if (!f.fixes().isEmpty()) {
+                b.append("**Fix**\n\n");
+                f.fixes().forEach(fix -> b.append("- ").append(fix).append('\n'));
+                b.append('\n');
+            }
+            if (!f.threads().isEmpty()) {
+                b.append("Threads: ");
+                b.append(String.join(", ", f.threads().stream().limit(8).map(n -> "`" + n + "`").toList()));
+                if (f.threads().size() > 8) {
+                    b.append(" — +").append(f.threads().size() - 8);
+                }
+                b.append("\n\n");
+            }
+        }
+
+        if (!result.hotspots().isEmpty()) {
+            b.append("## On-CPU stacks\n\n| Threads | Samples | Top frame |\n|---:|---:|---|\n");
+            for (Hotspot h : result.hotspots().stream().limit(8).toList()) {
+                b.append("| ").append(h.threads()).append(" | ").append(h.samples()).append('/')
+                        .append(snapshot.sampleCount()).append(" | `").append(h.topFrame()).append("` |\n");
+            }
+            b.append('\n');
+        }
+
+        if (!result.contentions().isEmpty()) {
+            b.append("## Contended monitors\n\n| Waiters | Monitor | Held by |\n|---:|---|---|\n");
+            for (Contention c : result.contentions().stream().limit(8).toList()) {
+                b.append("| ").append(c.waiters()).append(" | `").append(c.lockClass()).append("` ")
+                        .append(c.lockId()).append(" | `").append(c.ownerName()).append("` @ `")
+                        .append(c.ownerTopFrame()).append("` |\n");
+            }
+            b.append('\n');
+        }
+
+        ThreadDump dump = snapshot.first();
+        b.append("## Thread states\n\n");
+        for (Map.Entry<String, Integer> e : dump.stateCounts().entrySet()) {
+            b.append("- ").append(e.getKey()).append(": ").append(e.getValue()).append('\n');
+        }
+        b.append("\n---\nGenerated by [").append(BuildInfo.NAME).append(" v").append(BuildInfo.VERSION)
+                .append("](").append(BuildInfo.REPO).append("). ");
+        b.append("The full report (`report.html`) is self-contained and safe to share.\n");
+        return b.toString();
+    }
+}

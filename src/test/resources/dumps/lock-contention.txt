@@ -1,0 +1,192 @@
+12345:
+2026-11-10 22:43:07
+Full thread dump Java HotSpot(TM) 64-Bit Server VM (21.0.6+9-LTS-2320 mixed mode, sharing):
+
+Threads class SMR info:
+_java_thread_list=0x000001f4a1b2c000, length=16, elements={
+0x000001f4a1b2c800, 0x000001f4a1b2d000, 0x000001f4a1b2e000, 0x000001f4a1b2f000
+}
+
+"main" #1 [9100] prio=5 os_prio=0 cpu=44.10ms elapsed=12.71s tid=0x000001f4a1b2c800 nid=9100 in Object.wait()  [0x000000c3f4bfe000]
+   java.lang.Thread.State: WAITING (on object monitor)
+    at java.lang.Object.wait0(java.base@21.0.6/Native Method)
+    - waiting on <0x00000000d5e1a010> (a java.lang.Thread)
+    at java.lang.Object.wait(java.base@21.0.6/Object.java:366)
+    at java.lang.Thread.join(java.base@21.0.6/Thread.java:2078)
+    - locked <0x00000000d5e1a010> (a java.lang.Thread)
+    at java.lang.Thread.join(java.base@21.0.6/Thread.java:2154)
+    at com.acme.checkout.CheckoutService.main(CheckoutService.java:38)
+
+   Locked ownable synchronizers:
+    - None
+
+"Reference Handler" #2 [9101] daemon prio=10 os_prio=2 cpu=0.00ms elapsed=12.68s tid=0x000001f4a1b2d000 nid=9101 waiting on condition  [0x000000c3f4cff000]
+   java.lang.Thread.State: RUNNABLE
+    at java.lang.ref.Reference.waitForReferencePendingList(java.base@21.0.6/Native Method)
+    at java.lang.ref.Reference.processPendingReferences(java.base@21.0.6/Reference.java:246)
+    at java.lang.ref.Reference$ReferenceHandler.run(java.base@21.0.6/Reference.java:208)
+
+   Locked ownable synchronizers:
+    - None
+
+"checkout-owner" #21 [9102] prio=5 os_prio=0 cpu=273.44ms elapsed=12.60s tid=0x000001f4a1b2e000 nid=9102 runnable  [0x000000c3f4dff000]
+   java.lang.Thread.State: RUNNABLE
+    at com.acme.checkout.Pricing.recalculate(Pricing.java:212)
+    - locked <0x00000000ab12cd34> (a com.acme.checkout.PriceTable)
+    at com.acme.checkout.Pricing.applyPromotions(Pricing.java:155)
+    at com.acme.checkout.CheckoutService.lambda$start$0(CheckoutService.java:44)
+    at java.lang.Thread.runWith(java.base@21.0.6/Thread.java:1596)
+    at java.lang.Thread.run(java.base@21.0.6/Thread.java:1583)
+
+   Locked ownable synchronizers:
+    - None
+
+"checkout-worker-1" #22 [9103] prio=5 os_prio=0 cpu=0.52ms elapsed=12.60s tid=0x000001f4a1b2f000 nid=9103 waiting for monitor entry  [0x000000c3f4eff000]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+    at com.acme.checkout.Pricing.recalculate(Pricing.java:212)
+    - waiting to lock <0x00000000ab12cd34> (a com.acme.checkout.PriceTable)
+    at com.acme.checkout.Pricing.applyPromotions(Pricing.java:155)
+    at com.acme.checkout.CheckoutService.lambda$start$1(CheckoutService.java:45)
+    at java.lang.Thread.runWith(java.base@21.0.6/Thread.java:1596)
+    at java.lang.Thread.run(java.base@21.0.6/Thread.java:1583)
+
+   Locked ownable synchronizers:
+    - None
+
+"checkout-worker-2" #23 [9104] prio=5 os_prio=0 cpu=0.41ms elapsed=12.60s tid=0x000001f4a1b30000 nid=9104 waiting for monitor entry  [0x000000c3f4ffe000]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+    at com.acme.checkout.Pricing.recalculate(Pricing.java:212)
+    - waiting to lock <0x00000000ab12cd34> (a com.acme.checkout.PriceTable)
+    at com.acme.checkout.Pricing.applyPromotions(Pricing.java:155)
+    at com.acme.checkout.CheckoutService.lambda$start$1(CheckoutService.java:45)
+    at java.lang.Thread.runWith(java.base@21.0.6/Thread.java:1596)
+    at java.lang.Thread.run(java.base@21.0.6/Thread.java:1583)
+
+   Locked ownable synchronizers:
+    - None
+
+"checkout-worker-3" #24 [9105] prio=5 os_prio=0 cpu=0.39ms elapsed=12.59s tid=0x000001f4a1b31000 nid=9105 waiting for monitor entry  [0x000000c3f50fe000]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+    at com.acme.checkout.Pricing.recalculate(Pricing.java:212)
+    - waiting to lock <0x00000000ab12cd34> (a com.acme.checkout.PriceTable)
+    at com.acme.checkout.Pricing.applyPromotions(Pricing.java:155)
+    at com.acme.checkout.CheckoutService.lambda$start$1(CheckoutService.java:45)
+    at java.lang.Thread.runWith(java.base@21.0.6/Thread.java:1596)
+    at java.lang.Thread.run(java.base@21.0.6/Thread.java:1583)
+
+   Locked ownable synchronizers:
+    - None
+
+"checkout-worker-4" #25 [9106] prio=5 os_prio=0 cpu=0.33ms elapsed=12.59s tid=0x000001f4a1b32000 nid=9106 waiting for monitor entry  [0x000000c3f51fe000]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+    at com.acme.checkout.Pricing.recalculate(Pricing.java:212)
+    - waiting to lock <0x00000000ab12cd34> (a com.acme.checkout.PriceTable)
+    at com.acme.checkout.Pricing.applyPromotions(Pricing.java:155)
+    at com.acme.checkout.CheckoutService.lambda$start$1(CheckoutService.java:45)
+    at java.lang.Thread.runWith(java.base@21.0.6/Thread.java:1596)
+    at java.lang.Thread.run(java.base@21.0.6/Thread.java:1583)
+
+   Locked ownable synchronizers:
+    - None
+
+"checkout-worker-5" #26 [9107] prio=5 os_prio=0 cpu=0.31ms elapsed=12.59s tid=0x000001f4a1b33000 nid=9107 waiting for monitor entry  [0x000000c3f52fe000]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+    at com.acme.checkout.Pricing.recalculate(Pricing.java:212)
+    - waiting to lock <0x00000000ab12cd34> (a com.acme.checkout.PriceTable)
+    at com.acme.checkout.Pricing.applyPromotions(Pricing.java:155)
+    at com.acme.checkout.CheckoutService.lambda$start$1(CheckoutService.java:45)
+    at java.lang.Thread.runWith(java.base@21.0.6/Thread.java:1596)
+    at java.lang.Thread.run(java.base@21.0.6/Thread.java:1583)
+
+   Locked ownable synchronizers:
+    - None
+
+"checkout-worker-6" #27 [9108] prio=5 os_prio=0 cpu=0.28ms elapsed=12.59s tid=0x000001f4a1b34000 nid=9108 waiting for monitor entry  [0x000000c3f53fe000]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+    at com.acme.checkout.Pricing.recalculate(Pricing.java:212)
+    - waiting to lock <0x00000000ab12cd34> (a com.acme.checkout.PriceTable)
+    at com.acme.checkout.Pricing.applyPromotions(Pricing.java:155)
+    at com.acme.checkout.CheckoutService.lambda$start$1(CheckoutService.java:45)
+    at java.lang.Thread.runWith(java.base@21.0.6/Thread.java:1596)
+    at java.lang.Thread.run(java.base@21.0.6/Thread.java:1583)
+
+   Locked ownable synchronizers:
+    - None
+
+"checkout-worker-7" #28 [9109] prio=5 os_prio=0 cpu=0.26ms elapsed=12.58s tid=0x000001f4a1b35000 nid=9109 waiting for monitor entry  [0x000000c3f54fe000]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+    at com.acme.checkout.Pricing.recalculate(Pricing.java:212)
+    - waiting to lock <0x00000000ab12cd34> (a com.acme.checkout.PriceTable)
+    at com.acme.checkout.Pricing.applyPromotions(Pricing.java:155)
+    at com.acme.checkout.CheckoutService.lambda$start$1(CheckoutService.java:45)
+    at java.lang.Thread.runWith(java.base@21.0.6/Thread.java:1596)
+    at java.lang.Thread.run(java.base@21.0.6/Thread.java:1583)
+
+   Locked ownable synchronizers:
+    - None
+
+"checkout-worker-8" #29 [9110] prio=5 os_prio=0 cpu=0.22ms elapsed=12.58s tid=0x000001f4a1b36000 nid=9110 waiting for monitor entry  [0x000000c3f55fe000]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+    at com.acme.checkout.Pricing.recalculate(Pricing.java:212)
+    - waiting to lock <0x00000000ab12cd34> (a com.acme.checkout.PriceTable)
+    at com.acme.checkout.Pricing.applyPromotions(Pricing.java:155)
+    at com.acme.checkout.CheckoutService.lambda$start$1(CheckoutService.java:45)
+    at java.lang.Thread.runWith(java.base@21.0.6/Thread.java:1596)
+    at java.lang.Thread.run(java.base@21.0.6/Thread.java:1583)
+
+   Locked ownable synchronizers:
+    - None
+
+"checkout-worker-9" #30 [9111] prio=5 os_prio=0 cpu=0.19ms elapsed=12.58s tid=0x000001f4a1b37000 nid=9111 waiting for monitor entry  [0x000000c3f56fe000]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+    at com.acme.checkout.Pricing.recalculate(Pricing.java:212)
+    - waiting to lock <0x00000000ab12cd34> (a com.acme.checkout.PriceTable)
+    at com.acme.checkout.Pricing.applyPromotions(Pricing.java:155)
+    at com.acme.checkout.CheckoutService.lambda$start$1(CheckoutService.java:45)
+    at java.lang.Thread.runWith(java.base@21.0.6/Thread.java:1596)
+    at java.lang.Thread.run(java.base@21.0.6/Thread.java:1583)
+
+   Locked ownable synchronizers:
+    - None
+
+"checkout-worker-10" #31 [9112] prio=5 os_prio=0 cpu=0.17ms elapsed=12.57s tid=0x000001f4a1b38000 nid=9112 waiting for monitor entry  [0x000000c3f57fe000]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+    at com.acme.checkout.Pricing.recalculate(Pricing.java:212)
+    - waiting to lock <0x00000000ab12cd34> (a com.acme.checkout.PriceTable)
+    at com.acme.checkout.Pricing.applyPromotions(Pricing.java:155)
+    at com.acme.checkout.CheckoutService.lambda$start$1(CheckoutService.java:45)
+    at java.lang.Thread.runWith(java.base@21.0.6/Thread.java:1596)
+    at java.lang.Thread.run(java.base@21.0.6/Thread.java:1583)
+
+   Locked ownable synchronizers:
+    - None
+
+"checkout-worker-11" #32 [9113] prio=5 os_prio=0 cpu=0.14ms elapsed=12.57s tid=0x000001f4a1b39000 nid=9113 waiting for monitor entry  [0x000000c3f58fe000]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+    at com.acme.checkout.Pricing.recalculate(Pricing.java:212)
+    - waiting to lock <0x00000000ab12cd34> (a com.acme.checkout.PriceTable)
+    at com.acme.checkout.Pricing.applyPromotions(Pricing.java:155)
+    at com.acme.checkout.CheckoutService.lambda$start$1(CheckoutService.java:45)
+    at java.lang.Thread.runWith(java.base@21.0.6/Thread.java:1596)
+    at java.lang.Thread.run(java.base@21.0.6/Thread.java:1583)
+
+   Locked ownable synchronizers:
+    - None
+
+"checkout-worker-12" #33 [9114] prio=5 os_prio=0 cpu=0.11ms elapsed=12.57s tid=0x000001f4a1b3a000 nid=9114 waiting for monitor entry  [0x000000c3f59fe000]
+   java.lang.Thread.State: BLOCKED (on object monitor)
+    at com.acme.checkout.Pricing.recalculate(Pricing.java:212)
+    - waiting to lock <0x00000000ab12cd34> (a com.acme.checkout.PriceTable)
+    at com.acme.checkout.Pricing.applyPromotions(Pricing.java:155)
+    at com.acme.checkout.CheckoutService.lambda$start$1(CheckoutService.java:45)
+    at java.lang.Thread.runWith(java.base@21.0.6/Thread.java:1596)
+    at java.lang.Thread.run(java.base@21.0.6/Thread.java:1583)
+
+   Locked ownable synchronizers:
+    - None
+
+"VM Thread" os_prio=2 cpu=0.00ms elapsed=12.74s tid=0x000001f4a1b1c000 nid=9115 runnable  
+
+"VM Periodic Task Thread" os_prio=2 cpu=0.00ms elapsed=12.74s tid=0x000001f4a1b1f000 nid=9116 waiting on condition  
+
+JNI global refs: 16, weak refs: 0
