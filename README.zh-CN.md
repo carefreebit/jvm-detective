@@ -11,6 +11,10 @@
 
 ![JVM Detective 故障报告](docs/img/report.png)
 
+报告支持一键 **EN / 中文** 切换：界面文案、findings 和 AI 提示词都会切换，而 `JVM`、`deadlock`、`heap`、`jcmd`、`RUNNABLE`、`CRITICAL` 这类专有词汇保留英文。语言选择会记在 `localStorage` 里。
+
+[中文报告预览](docs/img/report-zh.png)
+
 ---
 
 ## 凌晨两点的困境

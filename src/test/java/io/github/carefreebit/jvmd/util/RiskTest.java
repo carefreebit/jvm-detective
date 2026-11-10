@@ -50,7 +50,7 @@ class RiskTest {
                 finding("cpu-hotspot", Severity.CRITICAL),
                 finding("heap-pressure", Severity.HIGH));
         AnalysisResult result = new AnalysisResult(many, base.stats(), base.hotspots(),
-                base.contentions(), "CRITICAL", "");
+                base.contentions(), "CRITICAL", "", "");
 
         assertEquals(100, Risk.score(result));
         assertEquals("#ff4d4f", Risk.color(100));
@@ -73,7 +73,7 @@ class RiskTest {
         AnalysisResult base = TestFixtures.analyze(TestFixtures.deadlockSnapshot());
         AnalysisResult mixed = new AnalysisResult(
                 List.of(finding("heap-pressure", Severity.MEDIUM), finding("deadlock", Severity.CRITICAL)),
-                base.stats(), base.hotspots(), base.contentions(), "CRITICAL", "");
+                base.stats(), base.hotspots(), base.contentions(), "CRITICAL", "", "");
 
         assertEquals(Severity.CRITICAL, Risk.worst(mixed));
         assertEquals(Severity.CRITICAL, mixed.worst());

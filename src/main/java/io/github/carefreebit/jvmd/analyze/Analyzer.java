@@ -62,6 +62,16 @@ public final class Analyzer {
                     .fix("Run `jvmd investigate <pid> --samples 10 --interval-ms 500 --duration 10s` during the slowdown.",
                             "Check downstream dependencies (DB, Redis, MQ) and network latency.",
                             "If the symptom is intermittent, enable JFR: `jcmd <pid> JFR.start duration=5m`.")
+                    .zhTitle("未发现事故特征")
+                    .zhSummary("本次采集中没有发现 deadlock、lock contention、CPU hotspot、thread leak 或 heap pressure。")
+                    .zhEvidence("线程数=" + dump.size(),
+                            "线程状态=" + dump.stateCounts(),
+                            "堆使用=" + pct(snapshot.heap().usageRatio()),
+                            "采样次数=" + snapshot.sampleCount())
+                    .zhImpact("在这个时间窗口内 JVM 看起来是健康的。如果用户仍然反馈问题，请在故障复现时重新采集。")
+                    .zhFix("在变慢期间运行 `jvmd investigate <pid> --samples 10 --interval-ms 500 --duration 10s`。",
+                            "检查下游依赖（数据库、Redis、MQ）和网络延迟。",
+                            "如果问题偶发，开启 JFR：`jcmd <pid> JFR.start duration=5m`。")
                     .docs("docs/playbooks/triage.md")
                     .build());
         }
@@ -73,7 +83,8 @@ public final class Analyzer {
         Stats stats = Stats.from(snapshot, hotspots.size(), contentions.size());
         String verdict = verdict(findings);
         String narrative = narrative(snapshot, stats, findings);
-        return new AnalysisResult(findings, stats, hotspots, contentions, verdict, narrative);
+        String narrativeZh = narrativeZh(snapshot, stats, findings);
+        return new AnalysisResult(findings, stats, hotspots, contentions, verdict, narrative, narrativeZh);
     }
 
     // ---------------------------------------------------------------- hotspots
@@ -171,6 +182,20 @@ public final class Analyzer {
                         "If this is a known batch job, isolate it in its own pool and cap concurrency.")
                 .threads(names)
                 .threadIds(top.threadIds())
+                .zhTitle("CPU hotspot：" + simple(top.topFrame()))
+                .zhSummary(top.threads() + " 个线程持续运行在同一调用栈上"
+                        + (single ? "（单次快照）。" : "，横跨 " + top.samples() + " 次采样。"))
+                .zhEvidence(top.threads() + " 个线程在 " + top.samples() + "/" + snapshot.sampleCount() + " 次采样中处于运行态",
+                        "栈顶：" + top.topFrame(),
+                        "这些线程累计 CPU 时间：" + top.cpuMillis() + " ms",
+                        hotspots.size() > 1 ? "其他 hotspot 栈：" + hotspots.get(1).topFrame()
+                                + (hotspots.size() > 2 ? " | " + hotspots.get(2).topFrame() : "") : "",
+                        single ? "单次快照：这只是候选，不是经过测量的 hotspot" : "")
+                .zhImpact("该调用栈在持续消耗 CPU。" + top.threads() + " 个线程足以挤占请求处理能力并推高延迟。")
+                .zhFix("采一次 profiler：`jcmd " + snapshot.vm().pid() + " JFR.start duration=60s filename=hot.jfr`。",
+                        "检查 " + top.topFrame() + " 处的循环是否有无界工作、重试或忙等。",
+                        "不要在标志位上自旋；改用 `LockSupport.parkNanos`、队列或条件变量。",
+                        "如果是已知批处理任务，把它隔离到独立线程池并限制并发。")
                 .docs("docs/playbooks/cpu-spin.md")
                 .build());
     }
@@ -188,16 +213,21 @@ public final class Analyzer {
         }
         List<ThreadInfo> threads = names.stream().map(dump::byName).filter(t -> t != null).toList();
         List<String> evidence = new ArrayList<>();
+        List<String> zhEvidence = new ArrayList<>();
         evidence.add(names.size() + " thread(s) in a lock cycle: " + String.join(", ", names));
+        zhEvidence.add(names.size() + " 个线程处于 lock cycle：" + String.join(", ", names));
         for (ThreadInfo t : threads) {
             if (t.waitingToLock() != null) {
                 ThreadInfo owner = dump.ownersByLock().get(t.waitingToLock().id());
                 evidence.add("\"" + t.name() + "\" waits for " + t.waitingToLock().label()
                         + (owner != null ? " held by \"" + owner.name() + "\"" : " (owner not in dump)"));
+                zhEvidence.add("\"" + t.name() + "\" 等待 " + t.waitingToLock().label()
+                        + (owner != null ? "，持有者 \"" + owner.name() + "\"" : "（持有者不在本次 dump 中）"));
             }
         }
         if (threads.isEmpty()) {
             evidence.add("The JVM's own deadlock detector reported this cycle.");
+            zhEvidence.add("JVM 自带的 deadlock detector 报告了该 lock cycle。");
         }
 
         out.add(Finding.builder("deadlock", Severity.CRITICAL, "Deadlock", "Threads are deadlocked")
@@ -210,6 +240,14 @@ public final class Analyzer {
                         "Prefer `ReentrantLock.tryLock(timeout)` so a stuck thread fails fast instead of hanging forever.")
                 .threads(List.copyOf(names))
                 .threadIds(threads.stream().map(ThreadInfo::id).toList())
+                .zhTitle("Deadlock：线程互相等待")
+                .zhSummary("lock cycle 中的线程永远无法继续推进，必须人工介入。")
+                .zhEvidence(zhEvidence.toArray(String[]::new))
+                .zhImpact("这些线程处理的请求会永久挂起，连接池线程被逐个耗尽，直到服务不再接受新请求。")
+                .zhFix("立即保留证据：`jcmd " + snapshot.vm().pid() + " Thread.print -l > deadlock.txt`（本报告已完成）。",
+                        "先重启实例恢复用户，再在预发环境复现。",
+                        "修复锁顺序：所有 monitor 按同一全局顺序获取，或用一把粗粒度锁替代嵌套锁。",
+                        "优先使用 `ReentrantLock.tryLock(timeout)`，让卡住的线程快速失败而不是永久挂起。")
                 .docs("docs/playbooks/deadlock.md")
                 .build());
     }
@@ -285,12 +323,18 @@ public final class Analyzer {
                 : top.waiters() >= 10 ? Severity.HIGH : Severity.MEDIUM;
 
         List<String> evidence = new ArrayList<>();
+        List<String> zhEvidence = new ArrayList<>();
         evidence.add(top.waiters() + " threads BLOCKED on <" + top.lockId() + "> (" + top.lockClass() + ")");
+        zhEvidence.add(top.waiters() + " 个线程 BLOCKED 在 <" + top.lockId() + ">（" + top.lockClass() + "）");
         evidence.add("owner: \"" + top.ownerName() + "\" at " + top.ownerTopFrame());
+        zhEvidence.add("持有者：\"" + top.ownerName() + "\" @ " + top.ownerTopFrame());
         evidence.add("waiting: " + String.join(", ", top.waiterNames())
+                + (top.waiters() > top.waiterNames().size() ? " …" : ""));
+        zhEvidence.add("等待线程：" + String.join(", ", top.waiterNames())
                 + (top.waiters() > top.waiterNames().size() ? " …" : ""));
         if (contentions.size() > 1) {
             evidence.add("other contended locks: " + (contentions.size() - 1));
+            zhEvidence.add("其他竞争锁：" + (contentions.size() - 1));
         }
 
         out.add(Finding.builder("lock-contention", severity, "Lock contention",
@@ -304,6 +348,14 @@ public final class Analyzer {
                         "Inspect the owner at " + top.ownerTopFrame() + " first.")
                 .threads(top.waiterNames())
                 .threadIds(List.of())
+                .zhTitle("Lock contention：" + top.waiters() + " 个线程排队等同一把锁")
+                .zhSummary("一个线程持有 monitor，另外 " + top.waiters() + " 个线程在排队，延迟随队列长度增长。")
+                .zhEvidence(zhEvidence.toArray(String[]::new))
+                .zhImpact("CPU 可能看起来很闲，但吞吐已经被串行化：所有工作都堵在一把锁后面。")
+                .zhFix("缩小临界区；持锁期间绝不做 I/O、日志或 RPC。",
+                        "把全局 monitor 换成按 key 分段锁或并发数据结构。",
+                        "加超时（`tryLock`）并记录锁等待时间指标。",
+                        "先检查持有者停在哪一帧：" + top.ownerTopFrame() + "。")
                 .docs("docs/playbooks/lock-contention.md")
                 .build());
     }
@@ -329,16 +381,24 @@ public final class Analyzer {
         Map.Entry<String, List<ThreadInfo>> topGroup = groups.get(0);
 
         List<String> evidence = new ArrayList<>();
-        evidence.add("total threads: " + total + " (largest group \"" + ThreadDump.ThreadNames.groupKey(topGroup.getKey())
+        List<String> zhEvidence = new ArrayList<>();
+        String groupKey = ThreadDump.ThreadNames.groupKey(topGroup.getKey());
+        evidence.add("total threads: " + total + " (largest group \"" + groupKey
                 + "\": " + topGroup.getValue().size() + ")");
+        zhEvidence.add("线程总数：" + total + "（最大分组 \"" + groupKey
+                + "\"：" + topGroup.getValue().size() + "）");
         if (snapshot.sampleCount() > 1) {
             evidence.add("growth during capture: " + (growth >= 0 ? "+" : "") + growth
                     + " threads over " + snapshot.sampleCount() + " samples");
+            zhEvidence.add("采集期间增长：" + (growth >= 0 ? "+" : "") + growth
+                    + " 个线程，共 " + snapshot.sampleCount() + " 次采样");
         }
         for (var g : groups) {
+            String key = ThreadDump.ThreadNames.groupKey(g.getKey());
             evidence.add(String.format(Locale.ROOT, "%-40s %4d threads  e.g. %s",
-                    ThreadDump.ThreadNames.groupKey(g.getKey()), g.getValue().size(),
-                    g.getValue().get(0).name()));
+                    key, g.getValue().size(), g.getValue().get(0).name()));
+            zhEvidence.add(String.format(Locale.ROOT, "%-40s %4d 个线程  例如 %s",
+                    key, g.getValue().size(), g.getValue().get(0).name()));
         }
 
         out.add(Finding.builder("thread-leak", severity, "Threads",
@@ -352,6 +412,15 @@ public final class Analyzer {
                         "Give every pool a name and a cap; log rejections.",
                         "Check for a leaked executor created per request.")
                 .threads(groups.stream().flatMap(g -> g.getValue().stream()).limit(MAX_NAMES).map(ThreadInfo::name).toList())
+                .zhTitle("Thread leak：线程数异常（" + total + "）")
+                .zhSummary("线程在持续累积" + (growth > 0 ? "（采集期间新增 " + growth + " 个）" : "")
+                        + "。每个线程都要占用栈内存和调度开销。")
+                .zhEvidence(zhEvidence.toArray(String[]::new))
+                .zhImpact("放任不管最终会 `unable to create native thread`，或因线程栈导致 OOM。")
+                .zhFix("找到创建者：`jstack <pid> | grep -A 20 \"" + topGroup.getValue().get(0).name() + "\"`。",
+                        "用有界 `ThreadPoolExecutor` 替代 `new Thread(...)` 循环。",
+                        "给每个线程池命名并设置上限；记录拒绝事件。",
+                        "检查是否有每个请求都新建的 executor 泄漏。")
                 .docs("docs/playbooks/thread-leak.md")
                 .build());
     }
@@ -374,18 +443,29 @@ public final class Analyzer {
             return;
         }
         ThreadInfo sample = waiting.get(0);
+        String examples = String.join(", ", waiting.stream().limit(6).map(ThreadInfo::name).toList());
         out.add(Finding.builder("connection-starvation", Severity.HIGH, "Downstream",
                         "Connection pool starvation: " + waiting.size() + " threads waiting")
                 .summary("Threads are stacked inside `getConnection()`. The pool is empty and request threads are paying for it.")
                 .evidence(waiting.size() + " threads are parked in a connection-pool call",
                         "deepest frame: " + deepestDbFrame(sample),
-                        "example threads: " + String.join(", ", waiting.stream().limit(6).map(ThreadInfo::name).toList()))
+                        "example threads: " + examples)
                 .impact("Every request that needs the database blocks until a connection is returned; latency spikes and pools cascade.")
                 .fix("Check pool size and `connectionTimeout` (HikariCP: `maximumPoolSize`, `connectionTimeout`).",
                         "Find connections held too long: look for long transactions or missing `close()`.",
                         "Add a query timeout and a circuit breaker; never wait forever for a connection.",
                         "Confirm the database itself is healthy (locks, slow queries, max_connections).")
                 .threads(waiting.stream().limit(MAX_NAMES).map(ThreadInfo::name).toList())
+                .zhTitle("Connection pool starvation：" + waiting.size() + " 个线程在等待连接")
+                .zhSummary("线程堆在 `getConnection()` 里，连接池已空，请求线程正在为此买单。")
+                .zhEvidence(waiting.size() + " 个线程阻塞在连接池调用上",
+                        "最深的数据库帧：" + deepestDbFrame(sample),
+                        "示例线程：" + examples)
+                .zhImpact("每个需要数据库的请求都会阻塞到有连接归还为止，延迟飙升并引发级联故障。")
+                .zhFix("检查池大小和 `connectionTimeout`（HikariCP：`maximumPoolSize`、`connectionTimeout`）。",
+                        "找出长时间占用连接的地方：长事务或缺失 `close()`。",
+                        "加查询超时和熔断；永远不要无限等待连接。",
+                        "确认数据库本身健康（锁、慢查询、max_connections）。")
                 .docs("docs/playbooks/pool-starvation.md")
                 .build());
     }
@@ -416,18 +496,29 @@ public final class Analyzer {
             return;
         }
         List<ThreadInfo> threads = top.getValue();
+        String examples = String.join(", ", threads.stream().limit(6).map(ThreadInfo::name).toList());
         out.add(Finding.builder("downstream-stall", Severity.MEDIUM, "Downstream",
                         threads.size() + " threads blocked on the same downstream call")
                 .summary("A remote dependency is holding a large share of the request threads.")
                 .evidence(threads.size() + " threads share the same stack",
                         "top frame: " + top.getKey().top(),
-                        "examples: " + String.join(", ", threads.stream().limit(6).map(ThreadInfo::name).toList()))
+                        "examples: " + examples)
                 .impact("The local JVM looks idle while latency explodes; thread pools fill with waiters.")
                 .fix("Measure the dependency's p99 latency and error rate.",
                         "Set connect/read timeouts on every client (they are often infinite by default).",
                         "Isolate the dependency with a bulkhead or circuit breaker.",
                         "Check DNS, TLS handshakes and connection-pool settings.")
                 .threads(threads.stream().limit(MAX_NAMES).map(ThreadInfo::name).toList())
+                .zhTitle("Downstream stall：" + threads.size() + " 个线程阻塞在同一处下游调用")
+                .zhSummary("某个远程依赖占用了大量请求线程。")
+                .zhEvidence(threads.size() + " 个线程拥有相同调用栈",
+                        "栈顶：" + top.getKey().top(),
+                        "示例：" + examples)
+                .zhImpact("本机 JVM 看起来很闲，但延迟爆炸；线程池被等待者填满。")
+                .zhFix("测量该依赖的 p99 延迟和错误率。",
+                        "给每个客户端设置连接/读取超时（默认常常是无限）。",
+                        "用舱壁或熔断器隔离该依赖。",
+                        "检查 DNS、TLS 握手和连接池配置。")
                 .docs("docs/playbooks/downstream-stall.md")
                 .build());
     }
@@ -473,6 +564,17 @@ public final class Analyzer {
                         "Open it in Eclipse MAT and check dominator tree / retained size.",
                         "Look for unbounded caches, static collections, ThreadLocal leaks and oversized request buffers.",
                         "Only raise `-Xmx` after you know the live-set growth rate.")
+                .zhTitle("Heap pressure：已用 " + pct(ratio))
+                .zhSummary("存活对象接近最大堆。一次分配高峰就可能触发 Full GC 风暴或 OOM。")
+                .zhEvidence("堆使用 " + mb(heap.usedBytes()) + " / " + mb(heap.maxBytes()) + "（" + pct(ratio) + "）",
+                        "收集器：" + heap.collector() + "，GC：" + vm.gcName() + "，Xmx：" + mb(vm.maxHeapBytes()),
+                        metaRatio >= 0 ? "Metaspace 已提交/保留：" + pct(metaRatio) : "Metaspace：n/a",
+                        "线程数：" + snapshot.first().size())
+                .zhImpact("GC 停顿变长、吞吐下降，OOM 可能在服务仍有流量时杀死进程。")
+                .zhFix("重启前先 dump 堆：`jcmd <pid> GC.heap_dump /tmp/heap.hprof`。",
+                        "用 Eclipse MAT 打开，查看支配树/保留大小。",
+                        "排查无界缓存、静态集合、ThreadLocal 泄漏和过大的请求缓冲区。",
+                        "只有在确认存活对象增长速度后，才考虑调大 `-Xmx`。")
                 .docs("docs/playbooks/memory-pressure.md")
                 .build());
     }
@@ -491,8 +593,7 @@ public final class Analyzer {
         };
     }
 
-    private String narrative(Snapshot snapshot, Stats stats, List<Finding> findings) {        Finding top = findings.get(0);
-        if (top.severity() == Severity.INFO) {
+    private String narrative(Snapshot snapshot, Stats stats, List<Finding> findings) {        Finding top = findings.get(0);        if (top.severity() == Severity.INFO) {
             return "No smoking gun in this " + snapshot.sampleCount() + "-sample capture. "
                     + stats.totalThreads() + " threads (" + stats.runnable() + " runnable, "
                     + stats.blocked() + " blocked), heap at " + pct(stats.heapRatio()) + ". "
@@ -511,6 +612,28 @@ public final class Analyzer {
         sb.append("Evidence below is from ").append(snapshot.sampleCount())
                 .append(snapshot.sampleCount() == 1 ? " snapshot" : " samples")
                 .append(" taken at ").append(localTime(snapshot)).append('.');
+        return sb.toString();
+    }
+
+    private String narrativeZh(Snapshot snapshot, Stats stats, List<Finding> findings) {
+        Finding top = findings.get(0);
+        if (top.severity() == Severity.INFO) {
+            return "本次 " + snapshot.sampleCount() + " 次采样没有发现明确元凶。共 " + stats.totalThreads()
+                    + " 个线程（" + stats.runnable() + " 个运行中、" + stats.blocked() + " 个阻塞），堆使用 "
+                    + pct(stats.heapRatio()) + "。如果故障真实存在，请在复现时重新采集。";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(switch (top.severity()) {
+            case CRITICAL -> "JVM 处于严重故障状态。";
+            case HIGH -> "JVM 已经劣化。";
+            default -> "存在风险信号。";
+        });
+        sb.append(top.summaryZh()).append(' ');
+        if (findings.size() > 1) {
+            sb.append("下一个问题：").append(findings.get(1).titleZh()).append("。 ");
+        }
+        sb.append("以下证据来自 ").append(snapshot.sampleCount()).append(" 次采样，采集时间 ")
+                .append(localTime(snapshot)).append("。");
         return sb.toString();
     }
 

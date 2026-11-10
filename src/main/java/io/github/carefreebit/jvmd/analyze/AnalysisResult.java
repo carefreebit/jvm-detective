@@ -4,12 +4,14 @@ import java.util.List;
 
 /** Complete result of one analysis pass. */
 public record AnalysisResult(List<Finding> findings, Stats stats, List<Hotspot> hotspots,
-                             List<Contention> contentions, String verdict, String narrative) {
+                             List<Contention> contentions, String verdict, String narrative,
+                             String narrativeZh) {
 
     public AnalysisResult {
         findings = List.copyOf(findings);
         hotspots = List.copyOf(hotspots);
         contentions = List.copyOf(contentions);
+        narrativeZh = narrativeZh == null || narrativeZh.isBlank() ? narrative : narrativeZh;
     }
 
     public Severity worst() {

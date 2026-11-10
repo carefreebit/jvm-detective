@@ -11,6 +11,10 @@
 
 ![JVM Detective incident report](docs/img/report.png)
 
+The HTML report ships with a one-click **EN / 中文** switch: UI copy, findings and the AI handoff prompt are translated, while proper nouns such as `JVM`, `deadlock`, `heap`, `jcmd`, `RUNNABLE` and `CRITICAL` stay in English. Your choice is remembered in `localStorage`.
+
+[中文报告预览](docs/img/report-zh.png)
+
 ---
 
 ## The 2 a.m. problem

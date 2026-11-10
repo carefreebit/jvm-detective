@@ -9,6 +9,8 @@ smoke/
 analyzed/
 analyzed.json
 shot.png
+shots*/
+shots2/
 .idea/
 *.iml
 .vscode/

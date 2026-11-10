@@ -47,7 +47,9 @@ class ReportTest {
         assertTrue(html.toLowerCase(java.util.Locale.ROOT).startsWith("<!doctype html>"));
         assertTrue(html.contains("<title>"), "a title helps tickets and browser tabs");
         assertTrue(html.contains("Threads are deadlocked"));
-        assertTrue(html.contains("id=\"ai-prompt\""), "copy-AI-prompt payload is missing");
+        assertTrue(html.contains("id=\"ai-prompt-en\""), "copy-AI-prompt payload is missing");
+        assertTrue(html.contains("id=\"ai-prompt-zh\""), "the Chinese AI handoff should ship too");
+        assertTrue(html.contains("data-lang=\"zh\""), "the report should offer a language switch");
         assertTrue(html.contains("<style>"), "CSS must be inlined");
         assertTrue(html.contains("addEventListener"), "JS must be inlined");
         assertFalse(html.contains("cdn.jsdelivr"), "no CDN dependencies");

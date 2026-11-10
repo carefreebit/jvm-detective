@@ -92,6 +92,25 @@ a:hover { text-decoration: underline; }
 
 .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--dim); }
 
+.lang { display: inline-flex; gap: 2px; margin-left: 6px; }
+.lang button {
+  font: 10px/1 var(--mono);
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px 7px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.lang button:hover { color: var(--text); border-color: var(--dim); }
+.lang button.on {
+  color: var(--amber);
+  border-color: rgba(255, 176, 32, 0.55);
+  background: rgba(255, 176, 32, 0.08);
+}
+
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.75fr);
