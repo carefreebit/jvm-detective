@@ -7,7 +7,7 @@
 [![Java 17+](https://img.shields.io/badge/Java-17%2B-orange)](https://adoptium.net/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![MCP ready](https://img.shields.io/badge/MCP-ready-8b5cf6)](https://modelcontextprotocol.io)
-[![Single jar](https://img.shields.io/badge/single%20jar-2.8%20MB-success)](https://github.com/lxhuang0903/jvm-detective/releases)
+[![Single jar](https://img.shields.io/badge/single%20jar-2.8%20MB-success)](https://github.com/carefreebit/jvm-detective/releases)
 
 ![JVM Detective incident report](docs/img/report.png)
 
@@ -59,7 +59,7 @@ Requires JDK 17+ on the machine that runs `jvmd`. The **target** JVM can be any 
 
 ```bash
 # Build from source (one minute)
-git clone https://github.com/lxhuang0903/jvm-detective.git
+git clone https://github.com/carefreebit/jvm-detective.git
 cd jvm-detective
 mvn -q -DskipTests package
 java -jar target/jvmd.jar --help
@@ -68,7 +68,7 @@ java -jar target/jvmd.jar --help
 alias jvmd='java -jar /opt/jvmd.jar'
 ```
 
-A prebuilt jar is attached to every [release](https://github.com/lxhuang0903/jvm-detective/releases).
+A prebuilt jar is attached to every [release](https://github.com/carefreebit/jvm-detective/releases).
 
 ---
 

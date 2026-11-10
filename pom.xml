@@ -4,12 +4,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.github.lxhuang0903</groupId>
+  <groupId>io.github.carefreebit</groupId>
   <artifactId>jvm-detective</artifactId>
   <version>1.0.0</version>
   <name>JVM Detective</name>
   <description>One command turns a sick JVM into a ranked incident report.</description>
-  <url>https://github.com/lxhuang0903/jvm-detective</url>
+  <url>https://github.com/carefreebit/jvm-detective</url>
 
   <licenses>
     <license>
@@ -21,21 +21,21 @@
 
   <developers>
     <developer>
-      <id>lxhuang0903</id>
-      <name>lxhuang0903</name>
-      <url>https://github.com/lxhuang0903</url>
+      <id>carefreebit</id>
+      <name>carefreebit</name>
+      <url>https://github.com/carefreebit</url>
     </developer>
   </developers>
 
   <scm>
-    <connection>scm:git:https://github.com/lxhuang0903/jvm-detective.git</connection>
-    <developerConnection>scm:git:git@github.com:lxhuang0903/jvm-detective.git</developerConnection>
-    <url>https://github.com/lxhuang0903/jvm-detective</url>
+    <connection>scm:git:https://github.com/carefreebit/jvm-detective.git</connection>
+    <developerConnection>scm:git:git@github.com:carefreebit/jvm-detective.git</developerConnection>
+    <url>https://github.com/carefreebit/jvm-detective</url>
   </scm>
 
   <issueManagement>
     <system>GitHub</system>
-    <url>https://github.com/lxhuang0903/jvm-detective/issues</url>
+    <url>https://github.com/carefreebit/jvm-detective/issues</url>
   </issueManagement>
 
   <properties>
@@ -108,7 +108,7 @@
               </filters>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>io.github.lxhuang0903.jvmd.cli.Main</mainClass>
+                  <mainClass>io.github.carefreebit.jvmd.cli.Main</mainClass>
                 </transformer>
               </transformers>
             </configuration>

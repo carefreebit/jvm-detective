@@ -7,7 +7,7 @@
 [![Java 17+](https://img.shields.io/badge/Java-17%2B-orange)](https://adoptium.net/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![MCP ready](https://img.shields.io/badge/MCP-ready-8b5cf6)](https://modelcontextprotocol.io)
-[![Single jar](https://img.shields.io/badge/single%20jar-2.8%20MB-success)](https://github.com/lxhuang0903/jvm-detective/releases)
+[![Single jar](https://img.shields.io/badge/single%20jar-2.8%20MB-success)](https://github.com/carefreebit/jvm-detective/releases)
 
 ![JVM Detective 故障报告](docs/img/report.png)
 
@@ -59,7 +59,7 @@ jvmd investigate 12345         # 采样约 3 秒，生成报告
 
 ```bash
 # 从源码构建（一分钟）
-git clone https://github.com/lxhuang0903/jvm-detective.git
+git clone https://github.com/carefreebit/jvm-detective.git
 cd jvm-detective
 mvn -q -DskipTests package
 java -jar target/jvmd.jar --help
@@ -68,7 +68,7 @@ java -jar target/jvmd.jar --help
 alias jvmd='java -jar /opt/jvmd.jar'
 ```
 
-每个 [Release](https://github.com/lxhuang0903/jvm-detective/releases) 都会附带编译好的 jar。
+每个 [Release](https://github.com/carefreebit/jvm-detective/releases) 都会附带编译好的 jar。
 
 ---
 
