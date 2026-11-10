@@ -50,6 +50,9 @@ class ReportTest {
         assertTrue(html.contains("id=\"ai-prompt-en\""), "copy-AI-prompt payload is missing");
         assertTrue(html.contains("id=\"ai-prompt-zh\""), "the Chinese AI handoff should ship too");
         assertTrue(html.contains("data-lang=\"zh\""), "the report should offer a language switch");
+        assertTrue(html.contains("https://github.com/carefreebit/jvm-detective/blob/main/docs/playbooks/deadlock.md"),
+                "playbook links must point at the current repository");
+        assertFalse(html.contains("lxhuang0903"), "no report may carry the pre-rename repository URL");
         assertTrue(html.contains("<style>"), "CSS must be inlined");
         assertTrue(html.contains("addEventListener"), "JS must be inlined");
         assertFalse(html.contains("cdn.jsdelivr"), "no CDN dependencies");

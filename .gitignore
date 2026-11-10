@@ -17,3 +17,5 @@ shots2/
 .DS_Store
 Thumbs.db
 node_modules/
+
+verify-report/
